@@ -27,6 +27,7 @@ class MagicBeans(commands.Cog) :
         self.last_updated = None
         self.read_data()
         self.planted = self.bean_data["Planted"]
+        self.inventory = self.bean_data["Inventory"]
         self.bean_loop.start()
 
     # Open, read data from, and close json data file
@@ -36,26 +37,6 @@ class MagicBeans(commands.Cog) :
 
         json_file.close()
 
-    # Command handler for giving someone a magic bean.
-    @discord.user_command(name="gift", description="Gift someone a magic bean.")
-    async def gift(self, ctx: discord.ApplicationContext, member: discord.Member):
-
-        self.add_bean(member)
-
-        await ctx.respond(f"{ctx.author.mention} gave {member.mention} a magic bean!")
-
-    # Command handler for checking number of beans a user has.
-    @discord.user_command(name="beans", description="Get a count of how many magic beans a user has.")
-    async def beans(self, ctx: discord.ApplicationContext, member: discord.Member):
-
-        count = self.bean_count(member.id)
-        if (str(member.id) not in self.bean_data["BeanCount"]) or count == 0:
-            await ctx.respond(f"{member.name} has no magic beans.")
-            self.bean_data["BeanCount"][str(member.id)] = 0
-
-        else:
-            await ctx.respond(f"{member.name} has " + str(count) + " magic beans.")
-
     # Process for writing data to the JSON file and closing.
     async def save_data(self):
         with open(self.file_path, 'w') as json_file:
@@ -64,47 +45,16 @@ class MagicBeans(commands.Cog) :
         json_file.close()
         self.last_updated = datetime.now()
 
-    # Adds a bean to members bean count. Returns new total of beans
-    def add_bean(self, member: discord.Member):
-        if (str(member.id) not in self.bean_data["BeanCount"]):
-            self.bean_data["BeanCount"][str(member.id)] = 1
-
-        else:
-            self.bean_data["BeanCount"][str(member.id)] += 1
-
-        return self.bean_data["BeanCount"][str(member.id)]
-
-    # Fetches bean count for member member_id
-    def bean_count(self, member_id):
-        return self.bean_data["BeanCount"][str(member_id)]
-
-    # Removes a bean from member. Returns new total of beans.
-    def remove_bean(self, member: discord.Member):
-        if (str(member.id) not in self.bean_data["BeanCount"]):
-            self.bean_data["BeanCount"][str(member.id)] = 0
-
-        else:
-            self.bean_data["BeanCount"][str(member.id)] -= 1
-
-        return self.bean_data["BeanCount"][str(member.id)]
-
     # Command handler for planting mysterious plants in beanBot's garden.
     @discord.slash_command(name="plant", description="Plant a magic bean in my garden and see what it grows into!")
     async def plant(self, ctx: discord.ApplicationContext):
-
-        # Make sure user has more beans
-        if self.bean_data["BeanCount"][str(ctx.author.id)] == 0:
-            await ctx.respond(f"You have no magic beans left to plant.")
-            return
 
         # Initialize bean (dict with guild, member, channel, time, and rarity) and add it to the list of all planted beans
         bean_plant = {"guild": ctx.guild.id, "member": ctx.author.id,"channel": ctx.channel.id, "time": datetime.now().isoformat(), "rarity": random.choice(self.rarity_options)}
         self.planted.append(bean_plant)
         self.bean_data["Planted"] = self.planted
 
-        # Remove a bean and grab count to report back.
-        numbeans = self.remove_bean(ctx.author)
-        await ctx.respond(f"{ctx.author.mention} planted a magic bean! They have {numbeans} magic beans left.")
+        await ctx.respond(f"{ctx.author.mention} planted a magic bean!")
         await self.save_data()
 
     # Command handler for checking the garden,
@@ -137,6 +87,34 @@ class MagicBeans(commands.Cog) :
         # Respond with message only if there are things in the garden
         else: await ctx.respond(f"Here is a list of things in my garden: \n{message}")
 
+    @discord.slash_command(name="inventory", description="Check your inventory for items you've obtained from planting magic beans.")
+    async def inventory(self, ctx: discord.ApplicationContext):
+        # Check the member's inventory
+        if str(ctx.author.id) in self.inventory:
+            items = self.inventory[str(ctx.author.id)]
+            if items:
+                message = "Here is your inventory: \n"
+                for item, count in items.items():
+                    message += f"- {item}: {count}\n"
+                await ctx.respond(message)
+            else:
+                await ctx.respond("Your inventory is empty!")
+        else:
+            await ctx.respond("Your inventory is empty!")
+
+    async def add_inventory(self, member, item, num):
+        # If the member is not in the inventory, add them
+        if str(member.id) not in self.inventory:
+            self.inventory[str(member.id)] = {}
+
+        # If the item is not in the member's inventory, add it
+        if item not in self.inventory[str(member.id)]:
+            self.inventory[str(member.id)][item] = 0
+
+        # Add the number of items to the member's inventory
+        self.inventory[str(member.id)][item] += num
+        self.bean_data["Inventory"] = self.inventory
+    
     # Every couple of minutes, check the progress on any planted beans with bean_loop
     @tasks.loop(minutes=2)
     async def bean_loop(self):
@@ -161,7 +139,7 @@ class MagicBeans(commands.Cog) :
             # Ultra rare beanstalk chance
             stalk_rarity = 10
             if bean["rarity"] == stalk_rarity:
-                result = "Giant bean stalk! Amazing!! +5 magic beans and a golden egg!"
+                result = "Giant bean stalk! Amazing!! You get a golden egg!"
                 for i in range(5):
                     self.add_bean(author)
 
@@ -207,11 +185,9 @@ class MagicBeans(commands.Cog) :
                 option = ""
                 num = 1
 
-            # Add a bean back to whoevers plant this was.
-            self.add_bean(author)
-
             # Say response
             await channel.send(f"{author.mention}'s mysterious magic bean plant has grown! Your plant grew: {option}{result}. You got {num} of them.")
+            await self.add_inventory(author, result, num)
 
         # Save bean data
         await self.save_data()
