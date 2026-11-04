@@ -179,7 +179,8 @@ class MagicBeans(commands.Cog) :
 
             # Say response
             await channel.send(f"{author.mention}'s mysterious magic bean plant has grown! Your plant grew: {option}{result}. You got {num} of them.")
-            await self.add_inventory(author, result, num)
+            inventory_item = f"{option.lower()}{result}"
+            await self.add_inventory(author, inventory_item, num)
 
         # Save bean data
         await self.save_data()
