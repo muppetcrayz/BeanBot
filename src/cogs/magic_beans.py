@@ -88,7 +88,7 @@ class MagicBeans(commands.Cog) :
         else: await ctx.respond(f"Here is a list of things in my garden: \n{message}")
 
     @discord.slash_command(name="inventory", description="Check your inventory for items you've obtained from planting magic beans.")
-    async def inventory(self, ctx: discord.ApplicationContext):
+    async def slash_inventory(self, ctx: discord.ApplicationContext):
         # Check the member's inventory
         if str(ctx.author.id) in self.inventory:
             items = self.inventory[str(ctx.author.id)]
