@@ -18,7 +18,7 @@ class Greetings(commands.Cog) :
         r"space\s+eggs?)\b",
         re.IGNORECASE,
     )
-    magic_emoji_name = "magegg~1"
+    magic_emoji_name = "magegg"
 
     def __init__(self, bot):
         self.bot = bot
@@ -35,8 +35,17 @@ class Greetings(commands.Cog) :
         if not self.magic_words.search(message.content):
             return
 
+        # Prefer this server's emoji, then check other servers the bot can access.
         emoji = discord.utils.get(message.guild.emojis, name=self.magic_emoji_name)
         if emoji is None:
+            emoji = discord.utils.get(self.bot.emojis, name=self.magic_emoji_name)
+        if emoji is None:
+            logging.getLogger(__name__).warning(
+                "Magic reaction skipped: emoji %r not found for guild %s. "
+                "Available emoji names: %s",
+                self.magic_emoji_name, message.guild.id,
+                ", ".join(emoji.name for emoji in self.bot.emojis),
+            )
             return
 
         try:
