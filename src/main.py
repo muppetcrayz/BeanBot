@@ -16,7 +16,7 @@ intents = Intents.default()
 intents.__setattr__("message_content", True)
 
 # Create bot
-bot = discord.Bot()
+bot = discord.Bot(intents=intents)
 
 # On ready event
 @bot.event

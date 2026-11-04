@@ -17,8 +17,8 @@ class MagicBeans(commands.Cog) :
     file_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", 'beandata.json')
     rarity_options = [1,2,3,4,5,6,7,8,9,10]
     common_produce = ["onion", "cucumber", "apple", "blueberry", "broccoli", "asparagus", "peach", "grapes", "banana","dragon fruit"]
-    uncommon_produce = ["magic bean", "silver eggplant", "bronze zucchini"]
-    rare_produce = ["golden berry", "magic bean", "purple yam"]
+    uncommon_produce = ["silver eggplant", "bronze zucchini"]
+    rare_produce = ["golden berry", "purple yam"]
 
     def __init__(self, bot):
 
@@ -140,8 +140,6 @@ class MagicBeans(commands.Cog) :
             stalk_rarity = 10
             if bean["rarity"] == stalk_rarity:
                 result = "Giant bean stalk! Amazing!! You get a golden egg!"
-                for i in range(5):
-                    self.add_bean(author)
 
             # 8, 9 yield a rare produce
             elif bean["rarity"] > 7:
@@ -161,12 +159,6 @@ class MagicBeans(commands.Cog) :
             sizes.remove("Giant ")
             option = random.choice(sizes)
             sizes.append("Giant ")
-
-            # If beans were selected but not the bean stalk, add beans
-            if result == "magic bean":
-                num = bean["rarity"]/3
-                for i in num:
-                    self.add_bean(author)
 
             # Re-add giant as an option for anything that isn't the bottom rarities
             if bean["rarity"] > 2:

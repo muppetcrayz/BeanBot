@@ -1,5 +1,7 @@
 import discord
 import random
+import logging
+import re
 
 from discord.ext import commands
 
@@ -8,6 +10,16 @@ from discord.ext import commands
 '''
 class Greetings(commands.Cog) :
 
+    magic_words = re.compile(
+        r"\b(?:mages?|wizards?|wizardry|magic(?:al|ally)?|magicians?|"
+        r"witch(?:es|craft)?|warlocks?|sorcer(?:y|ers?|ess(?:es)?)|"
+        r"enchant(?:ed|ing|ments?)?|spells?|potions?|"
+        r"necroman(?:cy|cers?)|arcane|conjur(?:e|es|ed|ing|ation)|"
+        r"space\s+eggs?)\b",
+        re.IGNORECASE,
+    )
+    magic_emoji_name = "magegg~1"
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -15,6 +27,24 @@ class Greetings(commands.Cog) :
         target_cog = self.bot.get_cog('MagicBeans')
         self.bean_cog = target_cog
         self.bean_data = target_cog.bean_data
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or message.guild is None:
+            return
+        if not self.magic_words.search(message.content):
+            return
+
+        emoji = discord.utils.get(message.guild.emojis, name=self.magic_emoji_name)
+        if emoji is None:
+            return
+
+        try:
+            await message.add_reaction(emoji)
+        except discord.HTTPException:
+            logging.getLogger(__name__).warning(
+                "Could not add magic reaction to message %s", message.id, exc_info=True
+            )
 
     # Command handler for basic hello
     @commands.slash_command(name="hello", description="Say hello to beanbot, and get a response")
